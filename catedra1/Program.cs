@@ -1,55 +1,41 @@
 using Microsoft.EntityFrameworkCore;
+using GestionUsuarios.Data;
+using GestionUsuarios.Models;
+using GestionUsuarios.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlite("Data Source=users.db"));
+// Configura la base de datos SQLite con el DbContext
+builder.Services.AddDbContext<UsuarioDbContext>(options =>
+    options.UseSqlite("Data Source=usuarios.db"));
 
+// Añade el generador de endpoints y la documentación Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Habilitar Swagger en el entorno de desarrollo
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// Redirección HTTPS
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
+// Aplicar migraciones y ejecutar el seeder al iniciar la aplicación
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<UsuarioDbContext>();
     
+    // Aplica las migraciones a la base de datos
     await dbContext.Database.MigrateAsync();
     
-    await UserSeeder.SeedAsync(dbContext);
+    // Poblar la base de datos con el Seeder
+    await UsuarioSeeder.SeedAsync(dbContext);
 }
 
+// Ejecuta la aplicación
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
